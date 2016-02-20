@@ -1,0 +1,23 @@
+<resources>
+    <string name="app_name">DoraHacks</string>
+
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+
+    <string name="action_settings">Settings</string>
+
+    <string name="fb_app_id">1018696624863800</string>
+    <string name="title_activity_navigation">Navigation</string>
+
+    <string name="openDrawer">Drawer opened</string>
+    <string name="closeDrawer">Drawer closed</string>
+
+    <string name="dbappkey">8s1o3ty2zq75klx</string>
+    <string name="dbappsecret">8btim38b96pi2wv</string>
+
+    <string name="baseaddress">10,</string>
+
+<!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+
+</resources>

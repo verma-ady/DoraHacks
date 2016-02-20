@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.dorahacks.Activity.Login">
+
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/button_login_fb"
+        android:text="Login with Facebook"
+        android:layout_gravity="center"
+        android:gravity="center_vertical|center_horizontal"
+        android:textColor="#FFFFFF"
+        android:textSize="18sp"
+        android:layout_marginLeft="10dp"
+        android:layout_marginStart="10dp"
+        android:layout_marginRight="10dp"
+        android:layout_marginEnd="10dp"
+        android:paddingLeft="5dp"
+        android:paddingStart="5dp"
+        android:paddingRight="5dp"
+        android:paddingEnd="5dp"
+        android:background="#415DAE"
+        android:layout_marginBottom="5dp"
+        android:layout_marginTop="10dp"
+        android:textAllCaps="false"/>
+
+
+</FrameLayout>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <group android:checkableBehavior="single">
+        <item android:id="@+id/nav_wardrobe"
+            android:icon="@android:drawable/ic_menu_camera"
+            android:title="Wardrobe" />
+        <item android:id="@+id/nav_watch_friends"
+            android:icon="@android:drawable/ic_menu_gallery"
+            android:title="Watch Friends" />
+        <item android:id="@+id/nav_dress_selector"
+            android:icon="@android:drawable/ic_menu_slideshow"
+            android:title="Dress Selector" />
+        <item android:id="@+id/nav_favourite"
+            android:icon="@android:drawable/ic_menu_manage"
+            android:title="Favourite" />
+    </group>
+
+
+    <!--
+        <item
+        to add icon -
+        android:icon="@drawable/ic_inbox_black"
+        android:title="@string/inbox_string" />
+    -->
+
+
+
+</menu>
