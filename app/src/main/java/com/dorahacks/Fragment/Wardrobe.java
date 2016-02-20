@@ -88,7 +88,7 @@ public class Wardrobe extends Fragment implements View.OnClickListener {
         view.findViewById(R.id.cardView_top).setOnClickListener(this);
         view.findViewById(R.id.cardView_bottum).setOnClickListener(this);
         view.findViewById(R.id.cardView_Footwear).setOnClickListener(this);
-        view.findViewById(R.id.cardView_accessories).setOnClickListener(this);
+//        view.findViewById(R.id.cardView_accessories).setOnClickListener(this);
 
         FloatingActionButton fab = (FloatingActionButton) view.findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -153,14 +153,14 @@ public class Wardrobe extends Fragment implements View.OnClickListener {
         WardrobePictures wardrobePictures = new WardrobePictures();
         bundle = new Bundle();
         switch (v.getId()){
-            case R.id.cardView_accessories:
-                Toast.makeText(getContext(), "Accessories", Toast.LENGTH_SHORT).show();
-//                wardrobePictures = new WardrobePictures();
-                fragmentTransaction = getFragmentManager().beginTransaction();
-//                bundle = new Bundle();
-                bundle.putString("type", "acc");
-                wardrobePictures.setArguments(bundle);
-                break;
+//            case R.id.cardView_accessories:
+//                Toast.makeText(getContext(), "Accessories", Toast.LENGTH_SHORT).show();
+////                wardrobePictures = new WardrobePictures();
+//                fragmentTransaction = getFragmentManager().beginTransaction();
+////                bundle = new Bundle();
+//                bundle.putString("type", "acc");
+//                wardrobePictures.setArguments(bundle);
+//                break;
             case R.id.cardView_top:
                 Toast.makeText(getContext(), "Top", Toast.LENGTH_SHORT).show();
 //                wardrobePictures = new WardrobePictures();
@@ -464,7 +464,7 @@ public class Wardrobe extends Fragment implements View.OnClickListener {
                 if(jsonObject.getString("success").equals("1")){
                     progressDialog.dismiss();
                     Toast.makeText(getContext(),"Wardrobe Saved Successfully", Toast.LENGTH_SHORT).show();
-
+                    Toast.makeText(getContext(), "Fashion Tip: A Black Bottom might suit your selection", Toast.LENGTH_LONG).show();
                 } else {
                     Toast.makeText(getContext(),"Unable to Login", Toast.LENGTH_SHORT).show();
                 }

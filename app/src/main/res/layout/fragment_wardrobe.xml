@@ -97,33 +97,33 @@
         </android.support.v7.widget.CardView>
 
 
-        <android.support.v7.widget.CardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:id="@+id/cardView_accessories"
-            android:layout_marginLeft="7dp"
-            android:layout_marginRight="7dp"
-            cardView:cardUseCompatPadding="true"
-            android:layout_marginBottom="5dp"
-            android:layout_marginTop="5dp"
-            android:foreground="?attr/selectableItemBackground"
-            android:elevation="3dp"
-            android:focusable="true"
-            android:clickable="true"
-            android:background="@drawable/custom_border">
+        <!--<android.support.v7.widget.CardView-->
+            <!--android:layout_width="match_parent"-->
+            <!--android:layout_height="wrap_content"-->
+            <!--android:id="@+id/cardView_accessories"-->
+            <!--android:layout_marginLeft="7dp"-->
+            <!--android:layout_marginRight="7dp"-->
+            <!--cardView:cardUseCompatPadding="true"-->
+            <!--android:layout_marginBottom="5dp"-->
+            <!--android:layout_marginTop="5dp"-->
+            <!--android:foreground="?attr/selectableItemBackground"-->
+            <!--android:elevation="3dp"-->
+            <!--android:focusable="true"-->
+            <!--android:clickable="true"-->
+            <!--android:background="@drawable/custom_border">-->
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Accessories"
-                    android:textSize="24dp"
-                    android:textColor="#000000"
-                    android:padding="20dp"/>
-            </LinearLayout>
-        </android.support.v7.widget.CardView>
+            <!--<LinearLayout-->
+                <!--android:layout_width="match_parent"-->
+                <!--android:layout_height="wrap_content">-->
+                <!--<TextView-->
+                    <!--android:layout_width="match_parent"-->
+                    <!--android:layout_height="wrap_content"-->
+                    <!--android:text="Accessories"-->
+                    <!--android:textSize="24dp"-->
+                    <!--android:textColor="#000000"-->
+                    <!--android:padding="20dp"/>-->
+            <!--</LinearLayout>-->
+        <!--</android.support.v7.widget.CardView>-->
 
     </LinearLayout>
 

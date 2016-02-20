@@ -9,7 +9,7 @@ import android.view.View;
 /**
  * Created by Mukesh on 12/10/2015.
  */
-public class RecyclerItemClickListener implements RecyclerView.OnItemTouchListener {
+public class RecyclerViewTouchListener implements RecyclerView.OnItemTouchListener {
 
     private OnItemClickListener mListener;
     private GestureDetector mGestureDetector;
@@ -18,7 +18,7 @@ public class RecyclerItemClickListener implements RecyclerView.OnItemTouchListen
         public void onItemClick(View v, int position);
     }
 
-    public RecyclerItemClickListener(Context context, OnItemClickListener listener){
+    public RecyclerViewTouchListener(Context context, OnItemClickListener listener){
         mListener = listener;
         mGestureDetector = new GestureDetector( context, new GestureDetector.SimpleOnGestureListener(){
             @Override public boolean onSingleTapUp(MotionEvent e) {

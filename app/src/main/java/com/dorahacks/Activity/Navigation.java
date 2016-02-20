@@ -14,6 +14,8 @@ import android.view.View;
 import android.widget.Toast;
 
 import com.dorahacks.Fragment.DressSelector;
+import com.dorahacks.Fragment.Expert;
+import com.dorahacks.Fragment.Favourite;
 import com.dorahacks.Fragment.Wardrobe;
 import com.dorahacks.Fragment.WatchFriend;
 import com.dorahacks.R;
@@ -85,8 +87,18 @@ public class Navigation extends AppCompatActivity {
                         break;
                     case R.id.nav_favourite :
                         Toast.makeText(getApplicationContext(), "Favourite", Toast.LENGTH_LONG).show();
+                        fragmentTransaction = getSupportFragmentManager().beginTransaction();
+                        fragmentTransaction.replace(R.id.framelayout_navigation, new Favourite());
+                        fragmentTransaction.addToBackStack(null);
+                        fragmentTransaction.commit();
                         break;
-
+                    case R.id.nav_expert_advice :
+                        Toast.makeText(getApplicationContext(), "Favourite", Toast.LENGTH_LONG).show();
+                        fragmentTransaction = getSupportFragmentManager().beginTransaction();
+                        fragmentTransaction.replace(R.id.framelayout_navigation, new Expert());
+                        fragmentTransaction.addToBackStack(null);
+                        fragmentTransaction.commit();
+                        break;
                 }
                 //Closing drawer on item click
                 drawerLayout.closeDrawers();

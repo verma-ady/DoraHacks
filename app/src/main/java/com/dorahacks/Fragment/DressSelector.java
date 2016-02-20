@@ -2,10 +2,10 @@ package com.dorahacks.Fragment;
 
 
 import android.app.ProgressDialog;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
@@ -18,11 +18,10 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
-import android.widget.TextView;
 import android.widget.Toast;
 
-import com.dorahacks.Helper.ContentCardPictures;
 import com.dorahacks.Helper.ContentDressSelector;
+import com.dorahacks.Helper.RecyclerViewTouchListener;
 import com.dorahacks.R;
 import com.dropbox.client2.DropboxAPI;
 import com.dropbox.client2.android.AndroidAuthSession;
@@ -51,7 +50,7 @@ import java.util.List;
 /**
  * A simple {@link Fragment} subclass.
  */
-public class DressSelector extends Fragment {
+public class DressSelector extends Fragment implements View.OnClickListener {
 
 
     public DressSelector() {
@@ -62,6 +61,8 @@ public class DressSelector extends Fragment {
     SharedPreferences.Editor editor;
     private DropboxAPI<AndroidAuthSession> mDBApi;
 
+    String topSelect, bottomSelect, footSelect;
+    int top, bottom, foot;
     String urlS, dressType;
     Boolean doneTop, doneBottom, done;
 
@@ -79,6 +80,10 @@ public class DressSelector extends Fragment {
         doneTop = false;
         done = false;
 
+        topSelect = null;
+        bottomSelect = null;
+        footSelect = null;
+
         progressDialog = new ProgressDialog(getActivity());
         progressDialog.setProgressStyle(android.R.attr.progressBarStyleSmall);
         progressDialog.setCancelable(false);
@@ -91,6 +96,7 @@ public class DressSelector extends Fragment {
         recyclerViewBottum = (RecyclerView) view.findViewById(R.id.recyclerViewBottum);
         recyclerViewFootwear = (RecyclerView) view.findViewById(R.id.recyclerViewFootwear);
 
+        view.findViewById(R.id.dressSelector_button_add).setOnClickListener(this);
         recyclerViewTop.setHasFixedSize(false);
         recyclerViewBottum.setHasFixedSize(false);
         recyclerViewFootwear.setHasFixedSize(false);
@@ -112,9 +118,54 @@ public class DressSelector extends Fragment {
         contentBottom = new ContentDressSelector();
         contentFoot = new ContentDressSelector();
 
+        RecyclerListener();
+
         return view;
     }
 
+    private void RecyclerListener(){
+        recyclerViewTop.addOnItemTouchListener(new RecyclerViewTouchListener(getActivity(),
+                new RecyclerViewTouchListener.OnItemClickListener() {
+                    @Override
+                    public void onItemClick(View v, int position) {
+                        Log.v("MyApp", getClass().toString() + " CardListener " + position);
+                        if(topSelect!=null){
+                            recyclerViewTop.getChildAt(top).setBackgroundColor(getResources().getColor(R.color.white));
+                        }
+                        recyclerViewTop.getChildAt(position).setBackgroundColor(getResources().getColor(R.color.shade));
+                        top = position;
+                        topSelect = contentTop.ITEMS.get(position).name;
+                    }
+                }));
+
+        recyclerViewBottum.addOnItemTouchListener(new RecyclerViewTouchListener(getActivity(),
+                new RecyclerViewTouchListener.OnItemClickListener() {
+                    @Override
+                    public void onItemClick(View v, int position) {
+                        Log.v("MyApp", getClass().toString()+" CardListener " + position );
+                        if(bottomSelect!=null){
+                            recyclerViewBottum.getChildAt(bottom).setBackgroundColor(getResources().getColor(R.color.white));
+                        }
+                        recyclerViewBottum.getChildAt(position).setBackgroundColor(getResources().getColor(R.color.shade));
+                        bottom = position;
+                        bottomSelect = contentBottom.ITEMS.get(position).name;
+                    }
+                }));
+
+        recyclerViewFootwear.addOnItemTouchListener(new RecyclerViewTouchListener(getActivity(),
+                new RecyclerViewTouchListener.OnItemClickListener() {
+                    @Override
+                    public void onItemClick(View v, int position) {
+                        Log.v("MyApp", getClass().toString()+" CardListener " + position );
+                        if(footSelect!=null){
+                            recyclerViewFootwear.getChildAt(foot).setBackgroundColor(getResources().getColor(R.color.white));
+                        }
+                        recyclerViewFootwear.getChildAt(position).setBackgroundColor(getResources().getColor(R.color.shade));
+                        foot = position;
+                        footSelect = contentFoot.ITEMS.get(position).name;
+                    }
+                }));
+    }
 
     @Override
     public void onStart() {
@@ -170,6 +221,17 @@ public class DressSelector extends Fragment {
         progressDialog.show();
         GetImage getImage = new GetImage();
         getImage.execute();
+    }
+
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()){
+            case R.id.dressSelector_button_add:
+                SaveDress saveDress = new SaveDress();
+                saveDress.execute();
+                break;
+
+        }
     }
 
     private class RVAdapter extends RecyclerView.Adapter<RVAdapter.CardViewHolder> {
@@ -388,6 +450,157 @@ public class DressSelector extends Fragment {
                     bgThread.execute(image);
                 } else {
                     Toast.makeText(getContext(),"Unable to Login", Toast.LENGTH_SHORT).show();
+                }
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+    }//getrepo
+
+    public class SaveDress extends AsyncTask<Void, Void, String > {
+
+        //        String LOG_CAT = "MyApp";
+        @Override
+        protected String doInBackground(Void... params) {
+            String error=null;
+//            while(!done);
+            Log.v("MyApp", getClass().toString() + " AsyncTask Get Image doInBackground()"  + dressType);
+            HttpURLConnection urlConnection = null;
+            BufferedReader bufferedReader = null;
+
+            URL url = null;
+            urlS = getResources().getString(R.string.website) + "closet/addFav/";
+            try {
+                url= new URL(urlS);
+                Log.v("MyApp", getClass().toString() + " URL : " + urlS);
+
+                StringBuilder postDataString = new StringBuilder();
+                postDataString.append(URLEncoder.encode("fbid"));
+                postDataString.append("=");
+                postDataString.append(URLEncoder.encode(sharedPreferences.getString("fbid", null)));
+                postDataString.append("&");
+
+                postDataString.append(URLEncoder.encode("dressName"));
+                postDataString.append("=");
+                postDataString.append(URLEncoder.encode("MyDress"));
+                postDataString.append("&");
+
+                postDataString.append(URLEncoder.encode("trend"));
+                postDataString.append("=");
+                postDataString.append(URLEncoder.encode("0"));
+                postDataString.append("&");
+
+                postDataString.append(URLEncoder.encode("topid"));
+                postDataString.append("=");
+                postDataString.append(URLEncoder.encode(topSelect));
+                postDataString.append("&");
+
+                postDataString.append(URLEncoder.encode("bottomid"));
+                postDataString.append("=");
+                postDataString.append(URLEncoder.encode(bottomSelect));
+                postDataString.append("&");
+
+                postDataString.append(URLEncoder.encode("footid"));
+                postDataString.append("=");
+                postDataString.append(URLEncoder.encode(footSelect));
+                postDataString.append("&");
+
+                postDataString.append(URLEncoder.encode("accid"));
+                postDataString.append("=");
+                postDataString.append(URLEncoder.encode("Acc"));
+                postDataString.append("&");
+
+                postDataString.append(URLEncoder.encode("access"));
+                postDataString.append("=");
+                postDataString.append(URLEncoder.encode("0"));
+
+                Log.v("MyApp", getClass().toString() + "post data " + postDataString);
+
+                byte[] postData = postDataString.toString().getBytes("UTF-8");
+
+                int postDataLength = postData.length;
+
+                urlConnection = (HttpURLConnection) url.openConnection();
+                urlConnection.setRequestMethod("POST");
+
+                urlConnection.setRequestProperty("Content-Type",
+                        "application/x-www-form-urlencoded");
+
+                urlConnection.setRequestProperty("Content-Length", "" + Integer.toString(postDataLength));
+                urlConnection.setRequestProperty("Content-Language", "en-US");
+                urlConnection.setInstanceFollowRedirects(false);
+                urlConnection.setUseCaches(false);
+                urlConnection.setDoInput(true);
+                urlConnection.setDoOutput(true);
+                urlConnection.getOutputStream().write(postData);
+
+                urlConnection.connect();
+
+                InputStream inputStream = urlConnection.getInputStream();
+                StringBuffer buffer = new StringBuffer();
+                if(inputStream==null){
+                    return "null_inputstream";
+                }
+
+                bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
+
+                String line ;
+
+                while ( (line=bufferedReader.readLine())!=null ){
+                    buffer.append(line + '\n');
+                }
+
+                if (buffer.length() == 0) {
+                    return "null_inputstream";
+                }
+
+                String stringJSON = buffer.toString();
+//                Log.v(LOG_CAT, stringJSON );
+                return stringJSON;
+            } catch (UnknownHostException | ConnectException e) {
+                error = "null_internet" ;
+                e.printStackTrace();
+            } catch (IOException e) {
+                error= "null_file";
+                e.printStackTrace();
+            } finally {
+                if (urlConnection != null) {
+                    urlConnection.disconnect();
+                }
+                if (bufferedReader != null) {
+                    try {
+                        bufferedReader.close();
+                    } catch (final IOException e) {
+//                        Log.e(LOG_CAT, "ErrorClosingStream", e);
+                    }
+                }
+            }
+            return error;
+        }//doinbackground
+
+        @Override
+        protected void onPostExecute(String strJSON) {
+            Log.v("MyApp", "AsyncResponse: " + strJSON);
+            if( strJSON=="null_inputstream" || strJSON=="null_file" ){
+//                Toast.makeText(getContext(), "No Such User Id Found", Toast.LENGTH_SHORT).show();
+                return  ;
+            }
+
+            if ( strJSON=="null_internet" ){
+//                Toast.makeText(getContext(), "No Internet Connectivity", Toast.LENGTH_SHORT).show();
+                return ;
+            }
+
+            try {
+                JSONObject jsonObject = new JSONObject(strJSON);
+                if(jsonObject.getString("success").equals("1")){
+                    Toast.makeText(getContext(), "Added Successfully", Toast.LENGTH_SHORT).show();
+                    android.support.v4.app.FragmentTransaction fragmentTransaction;
+                    fragmentTransaction = getFragmentManager().beginTransaction();
+                    fragmentTransaction.replace(R.id.framelayout_navigation, new Expert());
+                    fragmentTransaction.commit();
+                } else {
+                    Toast.makeText(getContext(),"Unable to Add", Toast.LENGTH_SHORT).show();
                 }
             } catch (JSONException e) {
                 e.printStackTrace();
