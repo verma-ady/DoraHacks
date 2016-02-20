@@ -15,7 +15,7 @@
     <string name="dbappkey">8s1o3ty2zq75klx</string>
     <string name="dbappsecret">8btim38b96pi2wv</string>
 
-    <string name="baseaddress">10,</string>
+    <string name="website">http://192.168.137.70:8000/</string>
 
 <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>

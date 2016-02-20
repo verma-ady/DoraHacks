@@ -2,6 +2,7 @@ package com.dorahacks.Fragment;
 
 
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.CursorLoader;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -22,18 +23,30 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
+import com.dorahacks.Activity.Navigation;
 import com.dorahacks.R;
 import com.dropbox.client2.DropboxAPI;
 import com.dropbox.client2.android.AndroidAuthSession;
 import com.dropbox.client2.exception.DropboxException;
 import com.dropbox.client2.session.AppKeyPair;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.ConnectException;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.net.UnknownHostException;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -44,18 +57,30 @@ public class Wardrobe extends Fragment implements View.OnClickListener {
     public Wardrobe() {
         // Required empty public constructor
     }
-
+    Boolean done = false;
     SharedPreferences sharedPreferences;
     SharedPreferences.Editor editor;
-    String Filename, type;
+    String Filename, type, urlS;
     android.support.v4.app.FragmentTransaction fragmentTransaction;
     private DropboxAPI<AndroidAuthSession> mDBApi;
-
+    Bundle bundle;
+    WardrobePictures wardrobePictures;
+    private ProgressDialog progressDialog;
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         View view = inflater.inflate(R.layout.fragment_wardrobe, container, false);
+
+        progressDialog = new ProgressDialog(getActivity());
+        progressDialog.setProgressStyle(android.R.attr.progressBarStyleSmall);
+        progressDialog.setCancelable(false);
+        progressDialog.setCanceledOnTouchOutside(false);
+
+//        progressDialog.setMessage("Saving Qualification");
+//        progressDialog.show();
+
+        urlS = getResources().getString(R.string.website) + "closet/update/";
 
         sharedPreferences = getContext().getSharedPreferences("Login", getContext().MODE_PRIVATE);
         editor = sharedPreferences.edit();
@@ -109,7 +134,7 @@ public class Wardrobe extends Fragment implements View.OnClickListener {
                 if (options[item].equals("Top")) {
                     type = "top";
                     SelectImage();
-                } else if (options[item].equals("Bottum")) {
+                } else if (options[item].equals("Bottom")) {
                     type = "bottom";
                     SelectImage();
                 } else if (options[item].equals("Footwear")) {
@@ -125,36 +150,45 @@ public class Wardrobe extends Fragment implements View.OnClickListener {
 
     @Override
     public void onClick(View v) {
+        WardrobePictures wardrobePictures = new WardrobePictures();
+        bundle = new Bundle();
         switch (v.getId()){
             case R.id.cardView_accessories:
                 Toast.makeText(getContext(), "Accessories", Toast.LENGTH_SHORT).show();
+//                wardrobePictures = new WardrobePictures();
                 fragmentTransaction = getFragmentManager().beginTransaction();
-                fragmentTransaction.replace(R.id.framelayout_navigation, new WardrobePictures());
-                fragmentTransaction.addToBackStack(null);
-                fragmentTransaction.commit();
+//                bundle = new Bundle();
+                bundle.putString("type", "acc");
+                wardrobePictures.setArguments(bundle);
                 break;
             case R.id.cardView_top:
                 Toast.makeText(getContext(), "Top", Toast.LENGTH_SHORT).show();
+//                wardrobePictures = new WardrobePictures();
                 fragmentTransaction = getFragmentManager().beginTransaction();
-                fragmentTransaction.replace(R.id.framelayout_navigation, new WardrobePictures());
-                fragmentTransaction.addToBackStack(null);
-                fragmentTransaction.commit();
+//                bundle = new Bundle();
+                bundle.putString("type", "top");
+                wardrobePictures.setArguments(bundle);
                 break;
             case R.id.cardView_bottum:
-                Toast.makeText(getContext(), "Bottum", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), "Bottom", Toast.LENGTH_SHORT).show();
+//                wardrobePictures = new WardrobePictures();
                 fragmentTransaction = getFragmentManager().beginTransaction();
-                fragmentTransaction.replace(R.id.framelayout_navigation, new WardrobePictures());
-                fragmentTransaction.addToBackStack(null);
-                fragmentTransaction.commit();
+//                bundle = new Bundle();
+                bundle.putString("type", "bottom");
+                wardrobePictures.setArguments(bundle);
                 break;
             case R.id.cardView_Footwear:
+//                wardrobePictures = new WardrobePictures();
                 Toast.makeText(getContext(), "Footwear", Toast.LENGTH_SHORT).show();
                 fragmentTransaction = getFragmentManager().beginTransaction();
-                fragmentTransaction.replace(R.id.framelayout_navigation, new WardrobePictures());
-                fragmentTransaction.addToBackStack(null);
-                fragmentTransaction.commit();
+//                bundle = new Bundle();
+                bundle.putString("type", "foot");
+                wardrobePictures.setArguments(bundle);
                 break;
         }
+        fragmentTransaction.replace(R.id.framelayout_navigation, wardrobePictures);
+        fragmentTransaction.addToBackStack(null);
+        fragmentTransaction.commit();
     }
 
     @Override
@@ -188,8 +222,10 @@ public class Wardrobe extends Fragment implements View.OnClickListener {
                     fo = new FileOutputStream(destination);
                     fo.write(bytes.toByteArray());
                     fo.close();
+                    progressDialog.setMessage("Uplaoding Image");
+                    progressDialog.show();
                     BGThread bgThread = new BGThread(destination, Filename);
-                    bgThread.execute();
+                    bgThread.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 } catch (IOException e) {
@@ -219,8 +255,10 @@ public class Wardrobe extends Fragment implements View.OnClickListener {
                 Log.v("MyApp", getClass().toString() + " Select " + selectedImagePath);
                 File file = new File(selectedImagePath);
                 Filename = Long.toString(System.currentTimeMillis());
+                progressDialog.setMessage("Uplaoding Image");
+                progressDialog.show();
                 BGThread bgThread = new BGThread(file, Filename);
-                bgThread.execute();
+                bgThread.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
             }
         }
     }
@@ -244,6 +282,8 @@ public class Wardrobe extends Fragment implements View.OnClickListener {
             FileInputStream inputStream = new FileInputStream(file);
             DropboxAPI.Entry response = null;
             response = mDBApi.putFile(Name+".jpg", inputStream, file.length(), null, null);
+            SaveImage saveImage = new SaveImage();
+            saveImage.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
             Log.v("MyApp", "DbExampleLog" + "The uploaded file's rev is: " + response.rev);
         } catch (DropboxException e) {
             Log.v("MyApp", "DbExampleLog" + "DBException");
@@ -271,6 +311,8 @@ public class Wardrobe extends Fragment implements View.OnClickListener {
             } catch (IllegalStateException e) {
                 Log.v("MyApp", "DbAuthLog"+  " Error authenticating:" + e);
             }
+        } else {
+            mDBApi.getSession().startOAuth2Authentication(getActivity());
         }
     }
 
@@ -288,6 +330,151 @@ public class Wardrobe extends Fragment implements View.OnClickListener {
             UploadDB(File, Name);
             return null;
         }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            Log.v("MyApp", getClass().toString() + " AsyncTask BGThread onPost");
+            done = true;
+        }
     }
+
+    public class SaveImage extends AsyncTask<Void, Void, String > {
+
+        //        String LOG_CAT = "MyApp";
+        @Override
+        protected String doInBackground(Void... params) {
+            String error=null;
+            while(!done);
+            Log.v("MyApp", getClass().toString() + " AsyncTask Save Image doInBackground()");
+            HttpURLConnection urlConnection = null;
+            BufferedReader bufferedReader = null;
+
+            URL url = null;
+            try {
+                url= new URL(urlS);
+
+                StringBuilder postDataString = new StringBuilder();
+                postDataString.append(URLEncoder.encode("fbid"));
+                postDataString.append("=");
+                postDataString.append(URLEncoder.encode(sharedPreferences.getString("fbid", null)));
+                postDataString.append("&");
+
+                postDataString.append(URLEncoder.encode("dressType"));
+                postDataString.append("=");
+                postDataString.append(URLEncoder.encode(type));
+                postDataString.append("&");
+
+                postDataString.append(URLEncoder.encode("image"));
+                postDataString.append("=");
+                postDataString.append(URLEncoder.encode(Filename));
+                postDataString.append("&");
+
+                postDataString.append(URLEncoder.encode("color"));
+                postDataString.append("=");
+                postDataString.append(URLEncoder.encode("black"));
+                postDataString.append("&");
+
+                postDataString.append(URLEncoder.encode("access"));
+                postDataString.append("=");
+                postDataString.append(URLEncoder.encode("0"));
+                postDataString.append("&");
+
+                postDataString.append(URLEncoder.encode("dressName"));
+                postDataString.append("=");
+                postDataString.append(URLEncoder.encode("mydress"));
+
+                Log.v("MyApp", getClass().toString() + "post data " + postDataString);
+                byte[] postData = postDataString.toString().getBytes("UTF-8");
+
+                int postDataLength = postData.length;
+
+                urlConnection = (HttpURLConnection) url.openConnection();
+                urlConnection.setRequestMethod("POST");
+
+                urlConnection.setRequestProperty("Content-Type",
+                        "application/x-www-form-urlencoded");
+
+                urlConnection.setRequestProperty("Content-Length", "" + Integer.toString(postDataLength));
+                urlConnection.setRequestProperty("Content-Language", "en-US");
+                urlConnection.setInstanceFollowRedirects(false);
+                urlConnection.setUseCaches(false);
+                urlConnection.setDoInput(true);
+                urlConnection.setDoOutput(true);
+                urlConnection.getOutputStream().write(postData);
+
+                urlConnection.connect();
+
+                InputStream inputStream = urlConnection.getInputStream();
+                StringBuffer buffer = new StringBuffer();
+                if(inputStream==null){
+                    return "null_inputstream";
+                }
+
+                bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
+
+                String line ;
+
+                while ( (line=bufferedReader.readLine())!=null ){
+                    buffer.append(line + '\n');
+                }
+
+                if (buffer.length() == 0) {
+                    return "null_inputstream";
+                }
+
+                String stringJSON = buffer.toString();
+//                Log.v(LOG_CAT, stringJSON );
+                return stringJSON;
+            } catch (UnknownHostException | ConnectException e) {
+                error = "null_internet" ;
+                e.printStackTrace();
+            } catch (IOException e) {
+                error= "null_file";
+                e.printStackTrace();
+            } finally {
+                if (urlConnection != null) {
+                    urlConnection.disconnect();
+                }
+                if (bufferedReader != null) {
+                    try {
+                        bufferedReader.close();
+                    } catch (final IOException e) {
+//                        Log.e(LOG_CAT, "ErrorClosingStream", e);
+                    }
+                }
+            }
+            return error;
+        }//doinbackground
+
+        @Override
+        protected void onPostExecute(String strJSON) {
+            Log.v("MyApp", "AsyncResponse: " + strJSON );
+            if( strJSON=="null_inputstream" || strJSON=="null_file" ){
+                Toast.makeText(getContext(), "No Such User Id Found", Toast.LENGTH_SHORT).show();
+                return  ;
+            }
+
+            if ( strJSON=="null_internet" ){
+                Toast.makeText(getContext(), "No Internet Connectivity", Toast.LENGTH_SHORT).show();
+                return ;
+            }
+
+            try {
+                JSONObject jsonObject = new JSONObject(strJSON);
+                if(jsonObject.getString("success").equals("1")){
+                    progressDialog.dismiss();
+                    Toast.makeText(getContext(),"Wardrobe Saved Successfully", Toast.LENGTH_SHORT).show();
+
+                } else {
+                    Toast.makeText(getContext(),"Unable to Login", Toast.LENGTH_SHORT).show();
+                }
+
+
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+
+        }
+    }//getrepo
 
 }

@@ -1,6 +1,7 @@
 package com.dorahacks.Fragment;
 
 
+import android.app.ProgressDialog;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -15,8 +16,10 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.dorahacks.Helper.ContentCardPictures;
 import com.dorahacks.R;
@@ -25,9 +28,22 @@ import com.dropbox.client2.android.AndroidAuthSession;
 import com.dropbox.client2.exception.DropboxException;
 import com.dropbox.client2.session.AppKeyPair;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.ConnectException;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.net.UnknownHostException;
 import java.util.List;
 
 /**
@@ -46,7 +62,8 @@ public class WardrobePictures extends Fragment {
     private RecyclerView recyclerView;
     private RVAdapter rvAdapter;
     private DropboxAPI<AndroidAuthSession> mDBApi;
-
+    private ProgressDialog progressDialog;
+    String dressType, urlS;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -57,6 +74,17 @@ public class WardrobePictures extends Fragment {
         sharedPreferences = getContext().getSharedPreferences("Login", getContext().MODE_PRIVATE);
         editor = sharedPreferences.edit();
 
+        Bundle bundle = this.getArguments();
+        dressType = bundle.getString("type", null);
+        urlS = getResources().getString(R.string.website) + "closet/" + dressType + "/";
+
+        progressDialog = new ProgressDialog(getActivity());
+        progressDialog.setProgressStyle(android.R.attr.progressBarStyleSmall);
+        progressDialog.setCancelable(false);
+        progressDialog.setCanceledOnTouchOutside(false);
+
+        Log.v("MyApp", "Dress Type " + dressType);
+
         contentCardPictures = new ContentCardPictures();
 
         recyclerView = (RecyclerView) view.findViewById(R.id.recyclerView_card_pictures);
@@ -64,47 +92,10 @@ public class WardrobePictures extends Fragment {
         LinearLayoutManager linearLayoutManager = new LinearLayoutManager(getActivity());
         recyclerView.setLayoutManager(linearLayoutManager);
 
-        contentCardPictures.addItem(new ContentCardPictures.DummyItem("ABC Person",
-                BitmapFactory.decodeResource(getResources(), R.drawable.dp)));
-
-        contentCardPictures.addItem(new ContentCardPictures.DummyItem("ABC Person",
-                BitmapFactory.decodeResource(getResources(), R.drawable.dp)));
-
-        contentCardPictures.addItem(new ContentCardPictures.DummyItem("ABC Person",
-                BitmapFactory.decodeResource(getResources(), R.drawable.dp)));
-
-        contentCardPictures.addItem(new ContentCardPictures.DummyItem("ABC Person",
-                BitmapFactory.decodeResource(getResources(), R.drawable.dp)));
-
-        contentCardPictures.addItem(new ContentCardPictures.DummyItem("ABC Person",
-                BitmapFactory.decodeResource(getResources(), R.drawable.dp)));
-
         rvAdapter = new RVAdapter( contentCardPictures.ITEMS );
         recyclerView.setAdapter(rvAdapter);
 
         return view;
-    }
-
-    private Bitmap DownloadDB(){
-        Log.v("MyApp", "DownloadDB");
-        File f = new File(Environment.getExternalStorageDirectory() + "/DoraHacks");
-        if(!f.isDirectory()){
-            f.mkdir();
-        }
-        File file = new File(Environment.getExternalStorageDirectory() + "/DoraHacks"+"/1455918138761.jpg");
-        FileOutputStream outputStream = null;
-        try {
-            outputStream = new FileOutputStream(file);
-            DropboxAPI.DropboxFileInfo info = mDBApi.getFile("/1455918138761.jpg", null, outputStream, null);
-            Bitmap bitmap = BitmapFactory.decodeFile(file.getPath());
-            Log.v("MyApp", "DbExampleLog" +"The file's rev is: " + info.getMetadata().rev);
-            return bitmap;
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (DropboxException e) {
-            e.printStackTrace();
-        }
-        return null;
     }
 
 //    contentCardPictures.addItem(new ContentCardPictures.DummyItem("ABC Person", bitmap));
@@ -163,8 +154,10 @@ public class WardrobePictures extends Fragment {
             editor.apply();
         }
 
-        BGThread bgThread = new BGThread();
-        bgThread.execute();
+        progressDialog.setMessage("Loading " + dressType );
+        progressDialog.show();
+        GetImage getImage = new GetImage();
+        getImage.execute();
     }
 
 
@@ -183,7 +176,7 @@ public class WardrobePictures extends Fragment {
 
         @Override
         public void onBindViewHolder(RVAdapter.CardViewHolder holder, int position) {
-            holder.name.setText(contentCardPictures.ITEMS.get(position).Name);
+//            holder.name.setText(contentCardPictures.ITEMS.get(position).Name);
 
             holder.image.setAdjustViewBounds(true);
             holder.image.setScaleType(ImageView.ScaleType.CENTER_CROP);
@@ -208,30 +201,171 @@ public class WardrobePictures extends Fragment {
         }
     }
 
-    private class BGThread extends AsyncTask<Void, Void, Bitmap> {
+    private Bitmap DownloadDB(String s){
+        File f = new File(Environment.getExternalStorageDirectory() + "/DoraHacks");
+        if(!f.isDirectory()){
+            f.mkdir();
+        }
 
-//        File File;
-//        String Name;
-//        public BGThread (File vFile, String vName ){
-//            File = vFile;
-//            Name = vName;
-//        }
+        Log.v("MyApp", "DownloadDB" + s);
+        File file = new File(Environment.getExternalStorageDirectory() + "/DoraHacks/" + s + ".jpg");
+        FileOutputStream outputStream = null;
+        try {
+            outputStream = new FileOutputStream(file);
+            DropboxAPI.DropboxFileInfo info = mDBApi.getFile("/"+ s+ ".jpg", null, outputStream, null);
+            Bitmap bitmap = BitmapFactory.decodeFile(file.getPath());
+            contentCardPictures.addItem(new ContentCardPictures.DummyItem("Dress",bitmap));
+            Log.v("MyApp", "DbExampleLog" + "The file's rev is: " + info.getMetadata().rev);
+            return bitmap;
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (DropboxException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    private class BGThread extends AsyncTask<String, Void, Void> {
+
         @Override
-        protected Bitmap doInBackground(Void... params) {
+        protected Void doInBackground(String... params) {
             Log.v("MyApp", getClass().toString() + " AsyncTask doInBackground()");
-            return DownloadDB();
+            contentCardPictures.clear();
+            Log.v("MyApp", dressType + "Size: " + params.length);
+            for(int i=0; i<params.length ; i++ ) {
+                DownloadDB(params[i]);
+            }
+            return null;
         }
 
         @Override
-        protected void onPostExecute(Bitmap bitmap) {
-            contentCardPictures.clear();
-            contentCardPictures.addItem(new ContentCardPictures.DummyItem("ABC Person", bitmap));
-            contentCardPictures.addItem(new ContentCardPictures.DummyItem("ABC Person", bitmap));
-            contentCardPictures.addItem(new ContentCardPictures.DummyItem("ABC Person", bitmap));
+        protected void onPostExecute(Void aVoid) {
             rvAdapter = new RVAdapter(contentCardPictures.ITEMS);
             recyclerView.setAdapter(rvAdapter);
-
+            progressDialog.dismiss();
+            Toast.makeText(getContext(),"Wardrobe Loaded Successfully", Toast.LENGTH_SHORT).show();
         }
     }
+
+    public class GetImage extends AsyncTask<Void, Void, String > {
+
+        //        String LOG_CAT = "MyApp";
+        @Override
+        protected String doInBackground(Void... params) {
+            String error=null;
+//            while(!done);
+            Log.v("MyApp", getClass().toString() + " AsyncTask Get Image doInBackground()");
+            HttpURLConnection urlConnection = null;
+            BufferedReader bufferedReader = null;
+
+            URL url = null;
+            try {
+                url= new URL(urlS);
+                Log.v("MyApp", getClass().toString() + " URL : " + urlS);
+                StringBuilder postDataString = new StringBuilder();
+                postDataString.append(URLEncoder.encode("fbid"));
+                postDataString.append("=");
+                postDataString.append(URLEncoder.encode(sharedPreferences.getString("fbid", null)));
+
+                Log.v("MyApp", getClass().toString() + "post data " + postDataString);
+                byte[] postData = postDataString.toString().getBytes("UTF-8");
+
+                int postDataLength = postData.length;
+
+                urlConnection = (HttpURLConnection) url.openConnection();
+                urlConnection.setRequestMethod("POST");
+
+                urlConnection.setRequestProperty("Content-Type",
+                        "application/x-www-form-urlencoded");
+
+                urlConnection.setRequestProperty("Content-Length", "" + Integer.toString(postDataLength));
+                urlConnection.setRequestProperty("Content-Language", "en-US");
+                urlConnection.setInstanceFollowRedirects(false);
+                urlConnection.setUseCaches(false);
+                urlConnection.setDoInput(true);
+                urlConnection.setDoOutput(true);
+                urlConnection.getOutputStream().write(postData);
+
+                urlConnection.connect();
+
+                InputStream inputStream = urlConnection.getInputStream();
+                StringBuffer buffer = new StringBuffer();
+                if(inputStream==null){
+                    return "null_inputstream";
+                }
+
+                bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
+
+                String line ;
+
+                while ( (line=bufferedReader.readLine())!=null ){
+                    buffer.append(line + '\n');
+                }
+
+                if (buffer.length() == 0) {
+                    return "null_inputstream";
+                }
+
+                String stringJSON = buffer.toString();
+//                Log.v(LOG_CAT, stringJSON );
+                return stringJSON;
+            } catch (UnknownHostException | ConnectException e) {
+                error = "null_internet" ;
+                e.printStackTrace();
+            } catch (IOException e) {
+                error= "null_file";
+                e.printStackTrace();
+            } finally {
+                if (urlConnection != null) {
+                    urlConnection.disconnect();
+                }
+                if (bufferedReader != null) {
+                    try {
+                        bufferedReader.close();
+                    } catch (final IOException e) {
+//                        Log.e(LOG_CAT, "ErrorClosingStream", e);
+                    }
+                }
+            }
+            return error;
+        }//doinbackground
+
+        @Override
+        protected void onPostExecute(String strJSON) {
+            Log.v("MyApp", "AsyncResponse: " + strJSON);
+            if( strJSON=="null_inputstream" || strJSON=="null_file" ){
+//                Toast.makeText(getContext(), "No Such User Id Found", Toast.LENGTH_SHORT).show();
+                return  ;
+            }
+
+            if ( strJSON=="null_internet" ){
+//                Toast.makeText(getContext(), "No Internet Connectivity", Toast.LENGTH_SHORT).show();
+                return ;
+            }
+
+            try {
+                JSONObject jsonObject = new JSONObject(strJSON);
+                if(jsonObject.getString("success").equals("1")){
+                    JSONArray type = jsonObject.getJSONArray(dressType);
+                    String image[] = new String[type.length()];
+                    for(int i=0 ; i<type.length(); i++){
+                        image[i] = type.getJSONObject(i).getString("image");
+                        Log.v("MyApp", dressType + " Image: " + image[i]);
+                    }
+                    BGThread bgThread = new BGThread();
+                    bgThread.execute(image);
+
+                } else {
+                    Toast.makeText(getContext(),"Unable to Login", Toast.LENGTH_SHORT).show();
+                }
+
+
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+
+        }
+    }//getrepo
 
 }
