@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">DoraHacks</string>
+    <string name="app_name">Dress Social</string>
 
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
@@ -12,10 +12,14 @@
     <string name="openDrawer">Drawer opened</string>
     <string name="closeDrawer">Drawer closed</string>
 
+    <string name="cloudname">dressup</string>
+    <string name="cloudapi">457197387596169</string>
+    <string name="cloudkey">7gGfhTwHqIob3E1FKxyTZDIZePA</string>
+
     <string name="dbappkey">8s1o3ty2zq75klx</string>
     <string name="dbappsecret">8btim38b96pi2wv</string>
 
-    <string name="website">http://192.168.137.70:8000/</string>
+    <string name="website">http://192.168.137.80:8000/</string>
 
 <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>

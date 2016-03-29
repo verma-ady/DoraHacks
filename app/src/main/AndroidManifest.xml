@@ -3,10 +3,11 @@
     package="com.dorahacks" >
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+
 
     <application
-        android:name="com.dorahacks.Helper.AppController"
+        android:name=".Helper.AppController"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -16,6 +17,11 @@
             android:name="com.facebook.sdk.ApplicationId"
             android:value="@string/fb_app_id" />
 
+        <meta-data
+            android:name="CLOUDINARY_URL"
+            android:value="cloudinary://457197387596169:7gGfhTwHqIob3E1FKxyTZDIZePA@dressup"/>
+
+
         <activity
             android:name="com.facebook.FacebookActivity"
             android:configChanges="keyboard|keyboardHidden|screenLayout|screenSize|orientation"
@@ -23,31 +29,22 @@
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
         <activity
-            android:name="com.dropbox.client2.android.AuthActivity"
-            android:launchMode="singleTask"
-            android:theme="@android:style/Theme.Translucent.NoTitleBar"
-            android:configChanges="orientation|keyboard">
-            <intent-filter>
-                <!-- Change this to be db- followed by your app key -->
-                <data android:scheme="db-8s1o3ty2zq75klx" />
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.BROWSABLE"/>
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-        </activity>
-
-        <activity
             android:name=".Activity.Login"
+            android:configChanges="keyboard|keyboardHidden|screenLayout|screenSize|orientation" >
+
+        </activity>
+        <activity
+            android:name=".Activity.Navigation"
+            android:label="@string/title_activity_navigation"
+            android:configChanges="keyboard|keyboardHidden|screenLayout|screenSize|orientation" >
+        </activity>
+        <activity android:name=".Activity.Splash"
             android:configChanges="keyboard|keyboardHidden|screenLayout|screenSize|orientation" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
-        <activity
-            android:name=".Activity.Navigation"
-            android:label="@string/title_activity_navigation" >
         </activity>
     </application>
 

@@ -15,6 +15,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.Fragment;
 import android.util.Log;
@@ -23,6 +24,9 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
+import com.cloudinary.Cloudinary;
+import com.cloudinary.android.Utils;
+import com.cloudinary.utils.ObjectUtils;
 import com.dorahacks.Activity.Navigation;
 import com.dorahacks.R;
 import com.dropbox.client2.DropboxAPI;
@@ -47,6 +51,10 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.net.UnknownHostException;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -62,7 +70,8 @@ public class Wardrobe extends Fragment implements View.OnClickListener {
     SharedPreferences.Editor editor;
     String Filename, type, urlS;
     android.support.v4.app.FragmentTransaction fragmentTransaction;
-    private DropboxAPI<AndroidAuthSession> mDBApi;
+    Cloudinary cloudinary;
+
     Bundle bundle;
     WardrobePictures wardrobePictures;
     private ProgressDialog progressDialog;
@@ -77,8 +86,8 @@ public class Wardrobe extends Fragment implements View.OnClickListener {
         progressDialog.setCancelable(false);
         progressDialog.setCanceledOnTouchOutside(false);
 
-//        progressDialog.setMessage("Saving Qualification");
-//        progressDialog.show();
+        cloudinary = new Cloudinary("cloudinary://457197387596169:7gGfhTwHqIob3E1FKxyTZDIZePA@dressup");
+        cloudinary = new Cloudinary(Utils.cloudinaryUrlFromContext(getContext()));
 
         urlS = getResources().getString(R.string.website) + "closet/update/";
 
@@ -194,26 +203,27 @@ public class Wardrobe extends Fragment implements View.OnClickListener {
     @Override
     public void onStart() {
         super.onStart();
-        if(!sharedPreferences.getBoolean("dropboxWR", false ) ){
-            Drobbox();
-        }
     }
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (resultCode == getActivity().RESULT_OK) {
+        if (resultCode == getActivity().RESULT_OK) { // camera
             if (requestCode == 1) {
                 Bitmap thumbnail = (Bitmap) data.getExtras().get("data");
                 ByteArrayOutputStream bytes = new ByteArrayOutputStream();
                 thumbnail.compress(Bitmap.CompressFormat.JPEG, 90, bytes);
 
                 File f = new File(Environment.getExternalStorageDirectory() + "/DoraHacks");
+
                 if(!f.isDirectory()){
-                    f.mkdir();
+                    if(!f.mkdir()){
+                        Log.v("MyApp", "Unable to create directory" + f.toString() );
+                        Toast.makeText(getContext(), "Unable to Create New Directory", Toast.LENGTH_LONG );
+                    }
                 }
                 Filename = Long.toString(System.currentTimeMillis() );
-                File destination = new File(Environment.getExternalStorageDirectory(),
+                File destination = new File(Environment.getExternalStorageDirectory() +
                         "/DoraHacks/" + Filename + ".jpg");
                 FileOutputStream fo;
                 try {
@@ -222,9 +232,10 @@ public class Wardrobe extends Fragment implements View.OnClickListener {
                     fo = new FileOutputStream(destination);
                     fo.write(bytes.toByteArray());
                     fo.close();
-                    progressDialog.setMessage("Uplaoding Image");
+                    progressDialog.setMessage("Uploading Image");
                     progressDialog.show();
-                    BGThread bgThread = new BGThread(destination, Filename);
+                    FileInputStream inputStream = new FileInputStream(destination);
+                    BGThread bgThread = new BGThread(inputStream, Filename);
                     bgThread.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
@@ -232,7 +243,7 @@ public class Wardrobe extends Fragment implements View.OnClickListener {
                     e.printStackTrace();
                 }
 
-            } else if (requestCode == 2) {
+            } else if (requestCode == 2) { // gallery
                 Uri selectedImageUri = data.getData();
                 String[] projection = { MediaStore.MediaColumns.DATA };
                 CursorLoader cursorLoader = new CursorLoader(getContext(),selectedImageUri, projection, null, null, null);
@@ -253,16 +264,24 @@ public class Wardrobe extends Fragment implements View.OnClickListener {
                 options.inJustDecodeBounds = false;
                 bm = BitmapFactory.decodeFile(selectedImagePath, options);
                 Log.v("MyApp", getClass().toString() + " Select " + selectedImagePath);
+
                 File file = new File(selectedImagePath);
+                FileInputStream fileInputStream = null;
+                try {
+                    fileInputStream = new FileInputStream(file);
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }
+
                 Filename = Long.toString(System.currentTimeMillis());
                 progressDialog.setMessage("Uplaoding Image");
                 progressDialog.show();
-                BGThread bgThread = new BGThread(file, Filename);
+                BGThread bgThread = new BGThread(fileInputStream, Filename);
                 bgThread.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
             }
         }
     }
-
+/*
     private void Drobbox(){
         // In the class declaration section:
 
@@ -293,54 +312,52 @@ public class Wardrobe extends Fragment implements View.OnClickListener {
             e.printStackTrace();
         }
     }
-
+*/
     @Override
     public void onResume() {
         super.onResume();
-
-        AppKeyPair appKeys = new AppKeyPair(getResources().getString(R.string.dbappkey),
-                getResources().getString(R.string.dbappsecret));
-        AndroidAuthSession session = new AndroidAuthSession(appKeys);
-        mDBApi = new DropboxAPI<>(session);
-        if (mDBApi.getSession().authenticationSuccessful()) {
-            try {
-                // Required to complete auth, sets the access token on the session
-                mDBApi.getSession().finishAuthentication();
-
-                String accessToken = mDBApi.getSession().getOAuth2AccessToken();
-            } catch (IllegalStateException e) {
-                Log.v("MyApp", "DbAuthLog"+  " Error authenticating:" + e);
-            }
-        } else {
-            mDBApi.getSession().startOAuth2Authentication(getActivity());
-        }
     }
 
     private class BGThread extends AsyncTask<Void, Void, Void>{
 
-        File File;
+        FileInputStream inputStream;
         String Name;
-        public BGThread (File vFile, String vName ){
-            File = vFile;
+        Map<String, String> upload;
+        public BGThread (FileInputStream vFile, String vName ){
+            inputStream = vFile;
             Name = vName;
         }
         @Override
         protected Void doInBackground(Void... params) {
             Log.v("MyApp", getClass().toString() + " AsyncTask doInBackground()");
-            UploadDB(File, Name);
+
+            try {
+                upload = cloudinary.uploader().upload(inputStream, ObjectUtils.asMap("public_id", Name));
+                Log.v( "MyApp", getClass().toString() + " " + upload.toString() );
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            //UploadDB(File, Name);
             return null;
         }
 
         @Override
         protected void onPostExecute(Void aVoid) {
             Log.v("MyApp", getClass().toString() + " AsyncTask BGThread onPost");
+            SaveImage saveImage = new SaveImage(upload.get("public_id"), upload.get("secure_url"));
+            saveImage.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
             done = true;
         }
     }
 
-    public class SaveImage extends AsyncTask<Void, Void, String > {
+    public class SaveImage extends AsyncTask<Void, Void, String > { //
 
-        //        String LOG_CAT = "MyApp";
+        String PID, URL;
+        public SaveImage(String vPID, String vURL) {
+            PID = vPID;
+            URL = vURL;
+        }
+
         @Override
         protected String doInBackground(Void... params) {
             String error=null;
@@ -364,14 +381,14 @@ public class Wardrobe extends Fragment implements View.OnClickListener {
                 postDataString.append(URLEncoder.encode(type));
                 postDataString.append("&");
 
+                postDataString.append(URLEncoder.encode("url"));
+                postDataString.append("=");
+                postDataString.append(URLEncoder.encode(URL));
+                postDataString.append("&");
+
                 postDataString.append(URLEncoder.encode("image"));
                 postDataString.append("=");
                 postDataString.append(URLEncoder.encode(Filename));
-                postDataString.append("&");
-
-                postDataString.append(URLEncoder.encode("color"));
-                postDataString.append("=");
-                postDataString.append(URLEncoder.encode("black"));
                 postDataString.append("&");
 
                 postDataString.append(URLEncoder.encode("access"));
@@ -450,7 +467,7 @@ public class Wardrobe extends Fragment implements View.OnClickListener {
         protected void onPostExecute(String strJSON) {
             Log.v("MyApp", "AsyncResponse: " + strJSON );
             if( strJSON=="null_inputstream" || strJSON=="null_file" ){
-                Toast.makeText(getContext(), "No Such User Id Found", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), "Invalid Request", Toast.LENGTH_SHORT).show();
                 return  ;
             }
 
@@ -462,10 +479,11 @@ public class Wardrobe extends Fragment implements View.OnClickListener {
             try {
                 JSONObject jsonObject = new JSONObject(strJSON);
                 if(jsonObject.getString("success").equals("1")){
-                    progressDialog.dismiss();
+
                     Toast.makeText(getContext(),"Wardrobe Saved Successfully", Toast.LENGTH_SHORT).show();
                     Toast.makeText(getContext(), "Fashion Tip: A Black Bottom might suit your selection", Toast.LENGTH_LONG).show();
                 } else {
+
                     Toast.makeText(getContext(),"Unable to Login", Toast.LENGTH_SHORT).show();
                 }
 
@@ -473,7 +491,7 @@ public class Wardrobe extends Fragment implements View.OnClickListener {
             } catch (JSONException e) {
                 e.printStackTrace();
             }
-
+            progressDialog.dismiss();
         }
     }//getrepo
 

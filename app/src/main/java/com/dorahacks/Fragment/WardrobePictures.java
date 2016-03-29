@@ -5,6 +5,8 @@ import android.app.ProgressDialog;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
@@ -27,12 +29,15 @@ import com.dropbox.client2.DropboxAPI;
 import com.dropbox.client2.android.AndroidAuthSession;
 import com.dropbox.client2.exception.DropboxException;
 import com.dropbox.client2.session.AppKeyPair;
+import com.squareup.picasso.Picasso;
+import com.squareup.picasso.Target;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -61,7 +66,8 @@ public class WardrobePictures extends Fragment {
     private	ContentCardPictures contentCardPictures;
     private RecyclerView recyclerView;
     private RVAdapter rvAdapter;
-    private DropboxAPI<AndroidAuthSession> mDBApi;
+    private boolean loaded;
+    private int cnt, size;
     private ProgressDialog progressDialog;
     String dressType, urlS;
 
@@ -70,7 +76,7 @@ public class WardrobePictures extends Fragment {
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         View view = inflater.inflate(R.layout.fragment_wardrobe_pictures, container, false);
-
+        loaded = false;
         sharedPreferences = getContext().getSharedPreferences("Login", getContext().MODE_PRIVATE);
         editor = sharedPreferences.edit();
 
@@ -95,69 +101,19 @@ public class WardrobePictures extends Fragment {
         rvAdapter = new RVAdapter( contentCardPictures.ITEMS );
         recyclerView.setAdapter(rvAdapter);
 
+        GetImage getImage = new GetImage();
+        getImage.execute();
         return view;
     }
-
-//    contentCardPictures.addItem(new ContentCardPictures.DummyItem("ABC Person", bitmap));
-//    contentCardPictures.addItem(new ContentCardPictures.DummyItem("ABC Person", bitmap));
-//    contentCardPictures.addItem(new ContentCardPictures.DummyItem("ABC Person", bitmap));
-
-//    rvAdapter = new RVAdapter(contentCardPictures.ITEMS);
-//    recyclerView.setAdapter(rvAdapter);
 
     @Override
     public void onStart() {
         super.onStart();
-        Log.v("MyApp", "DbAuthLog" + " onStart");
-        if(!sharedPreferences.getBoolean("dropboxWR", false ) ){
-            Log.v("MyApp", "DbAuthLog"+  " onStart if");
-            Drobbox();
-        }
-    }
-
-    private void Drobbox(){
-        // In the class declaration section:
-
-        // And later in some initialization function:
-        AppKeyPair appKeys = new AppKeyPair(getResources().getString(R.string.dbappkey),
-                getResources().getString(R.string.dbappsecret));
-        AndroidAuthSession session = new AndroidAuthSession(appKeys);
-        mDBApi = new DropboxAPI<>(session);
-        mDBApi.getSession().startOAuth2Authentication(getActivity());
-        editor.putBoolean("dropboxWR", true);
-        editor.apply();
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        Log.v("MyApp", "DbAuthLog" + " onResume");
-        AppKeyPair appKeys = new AppKeyPair(getResources().getString(R.string.dbappkey),
-                getResources().getString(R.string.dbappsecret));
-        AndroidAuthSession session = new AndroidAuthSession(appKeys);
-        mDBApi = new DropboxAPI<>(session);
-        if (mDBApi.getSession().authenticationSuccessful()) {
-            Log.v("MyApp", "DbAuthLog"+  " onResume if");
-            try {
-                // Required to complete auth, sets the access token on the session
-                mDBApi.getSession().finishAuthentication();
-
-                String accessToken = mDBApi.getSession().getOAuth2AccessToken();
-
-            } catch (IllegalStateException e) {
-                Log.v("MyApp", "DbAuthLog"+  " Error authenticating:" + e);
-            }
-        } else {
-            Log.v("MyApp", "DbAuthLog"+  " onResume else");
-            mDBApi.getSession().startOAuth2Authentication(getActivity());
-            editor.putBoolean("dropboxWRP", true);
-            editor.apply();
-        }
-
-        progressDialog.setMessage("Loading " + dressType );
-        progressDialog.show();
-        GetImage getImage = new GetImage();
-        getImage.execute();
     }
 
 
@@ -212,30 +168,33 @@ public class WardrobePictures extends Fragment {
         FileOutputStream outputStream = null;
         try {
             outputStream = new FileOutputStream(file);
-            DropboxAPI.DropboxFileInfo info = mDBApi.getFile("/"+ s+ ".jpg", null, outputStream, null);
+            //DropboxAPI.DropboxFileInfo info = mDBApi.getFile("/"+ s+ ".jpg", null, outputStream, null);
             Bitmap bitmap = BitmapFactory.decodeFile(file.getPath());
-            contentCardPictures.addItem(new ContentCardPictures.DummyItem("Dress",bitmap));
-            Log.v("MyApp", "DbExampleLog" + "The file's rev is: " + info.getMetadata().rev);
+            contentCardPictures.addItem(new ContentCardPictures.DummyItem("Dress", bitmap));
             return bitmap;
         } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (DropboxException e) {
             e.printStackTrace();
         }
 
         return null;
     }
 
+    private void RunPicaso (String url[], String name[]) {
+        contentCardPictures.clear();
+        cnt = 0;
+        for(int i=0; i<url.length ; i++ ) {
+            //Log.v("MyApp", getClass().toString() + "RunPicaso " + url[i] + " " + name[i] );
+            Picasso.with(getContext()).load(url[i]).into(getTarget(url[i], name[i] ));
+        }
+        //while(!loaded);
+        Log.v("MyApp", getClass().toString() + "RunPicaso finished " );
+    }
+
     private class BGThread extends AsyncTask<String, Void, Void> {
 
         @Override
         protected Void doInBackground(String... params) {
-            Log.v("MyApp", getClass().toString() + " AsyncTask doInBackground()");
-            contentCardPictures.clear();
-            Log.v("MyApp", dressType + "Size: " + params.length);
-            for(int i=0; i<params.length ; i++ ) {
-                DownloadDB(params[i]);
-            }
+
             return null;
         }
 
@@ -248,9 +207,80 @@ public class WardrobePictures extends Fragment {
         }
     }
 
+    private void useBitmap(Bitmap bitmap ){
+        contentCardPictures.addItem(new ContentCardPictures.DummyItem("Dress", bitmap));
+
+        cnt++;
+        if(cnt==size){
+            Log.v("MyApp", "DoneLoading");
+            DoneLoading();
+        }
+
+    }
+
+    private Target getTarget(final String url, final String Filename){
+        Target target = new Target(){
+
+            @Override
+            public void onBitmapLoaded(final Bitmap bitmap, Picasso.LoadedFrom from) {
+
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        //Log.i("PRODUTOS_FOLDER", CreateAppFolder.getProdutosFolder());
+                        File f = new File(Environment.getExternalStorageDirectory() + "/DoraHacks");
+                        if(!f.isDirectory()){
+                            f.mkdir();
+                        }
+                        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+                        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, bytes);
+                        File destination = new File(Environment.getExternalStorageDirectory(),
+                                "/DoraHacks/" + Filename + ".jpg");
+                        FileOutputStream fo;
+
+//                        File file = new File(Environment.getExternalStorageDirectory() + url);
+                        try {
+
+                            //Log.v("MyApp", getClass().toString() + " Camera " + destination.getPath());
+                            fo = new FileOutputStream(destination);
+                            fo.write(bytes.toByteArray());
+                            fo.close();
+                            boolean fill = destination.createNewFile();
+                            if(fill){
+                                Log.v("MyApp", Filename + " Created ");
+                            } else {
+                                Log.v("MyApp", Filename + " Not Created ");
+                            }
+//                            file.createNewFile();
+//                            FileOutputStream ostream = new FileOutputStream(file);
+//                            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, ostream);
+//                            ostream.flush();
+//                            ostream.close();
+                        }
+                        catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }).start();
+                Log.v("MyApp", "onBitmapLoaded" + url);
+                useBitmap(bitmap);
+
+            }
+
+            @Override
+            public void onBitmapFailed(Drawable errorDrawable) {
+
+            }
+
+            @Override
+            public void onPrepareLoad(final Drawable placeHolderDrawable) {
+            }
+        };
+        return target;
+    }
+
     public class GetImage extends AsyncTask<Void, Void, String > {
 
-        //        String LOG_CAT = "MyApp";
         @Override
         protected String doInBackground(Void... params) {
             String error=null;
@@ -334,13 +364,14 @@ public class WardrobePictures extends Fragment {
         @Override
         protected void onPostExecute(String strJSON) {
             Log.v("MyApp", "AsyncResponse: " + strJSON);
+
             if( strJSON=="null_inputstream" || strJSON=="null_file" ){
-//                Toast.makeText(getContext(), "No Such User Id Found", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), "Invalid Request", Toast.LENGTH_SHORT).show();
                 return  ;
             }
 
             if ( strJSON=="null_internet" ){
-//                Toast.makeText(getContext(), "No Internet Connectivity", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), "No Internet Connectivity", Toast.LENGTH_SHORT).show();
                 return ;
             }
 
@@ -348,24 +379,35 @@ public class WardrobePictures extends Fragment {
                 JSONObject jsonObject = new JSONObject(strJSON);
                 if(jsonObject.getString("success").equals("1")){
                     JSONArray type = jsonObject.getJSONArray(dressType);
+                    size = type.length();
                     String image[] = new String[type.length()];
+                    String filename[] = new String[type.length()];
                     for(int i=0 ; i<type.length(); i++){
-                        image[i] = type.getJSONObject(i).getString("image");
-                        Log.v("MyApp", dressType + " Image: " + image[i]);
+                        image[i] = type.getJSONObject(i).getString("url");
+                        filename[i] = type.getJSONObject(i).getString("image");
+                        Log.v("MyApp", dressType + " ImageURL: " + image[i]);
                     }
-                    BGThread bgThread = new BGThread();
-                    bgThread.execute(image);
-
+                    RunPicaso(image, filename);
+//                    BGThread bgThread = new BGThread();
+//                    bgThread.execute(image);
                 } else {
                     Toast.makeText(getContext(),"Unable to Login", Toast.LENGTH_SHORT).show();
                 }
-
 
             } catch (JSONException e) {
                 e.printStackTrace();
             }
 
+
+            //progressDialog.dismiss();
         }
     }//getrepo
+
+    public void DoneLoading (){
+        rvAdapter = new RVAdapter(contentCardPictures.ITEMS);
+        recyclerView.setAdapter(rvAdapter);
+        progressDialog.dismiss();
+        Toast.makeText(getContext(),"Wardrobe Loaded Successfully", Toast.LENGTH_SHORT).show();
+    }
 
 }
