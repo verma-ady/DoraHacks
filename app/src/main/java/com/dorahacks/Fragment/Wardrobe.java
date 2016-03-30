@@ -233,6 +233,7 @@ public class Wardrobe extends Fragment implements View.OnClickListener {
                     fo.write(bytes.toByteArray());
                     fo.close();
                     progressDialog.setMessage("Uploading Image");
+                    progressDialog.setCancelable(true);
                     progressDialog.show();
                     FileInputStream inputStream = new FileInputStream(destination);
                     BGThread bgThread = new BGThread(inputStream, Filename);
@@ -274,7 +275,7 @@ public class Wardrobe extends Fragment implements View.OnClickListener {
                 }
 
                 Filename = Long.toString(System.currentTimeMillis());
-                progressDialog.setMessage("Uplaoding Image");
+                progressDialog.setMessage("Uploading Image");
                 progressDialog.show();
                 BGThread bgThread = new BGThread(fileInputStream, Filename);
                 bgThread.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
